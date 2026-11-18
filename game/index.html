@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>SOLMARA — Neon Streets</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a0a14; font-family: 'Segoe UI', system-ui, sans-serif; }
+  #game-canvas { display: block; width: 100vw; height: 100vh; }
+  #hud { position: fixed; inset: 0; pointer-events: none; display: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+  #hud-top-left { position: absolute; top: 14px; left: 16px; font-size: 20px; }
+  #hud-cash { font-size: 28px; font-weight: 700; color: #39ff88; }
+  #hud-health { width: 180px; height: 10px; background: rgba(255,255,255,.25); border-radius: 5px; margin-top: 6px; overflow: hidden; }
+  #hud-health-fill { height: 100%; width: 100%; background: #39ff88; }
+  #hud-stars { font-size: 26px; letter-spacing: 3px; margin-top: 4px; }
+  #hud-top-right { position: absolute; top: 14px; right: 16px; text-align: right; }
+  #minimap { width: 180px; height: 180px; border: 2px solid rgba(255,255,255,.35); border-radius: 8px; background: rgba(8,8,18,.85); }
+  #hud-speed { font-size: 24px; font-weight: 700; margin-top: 6px; }
+  #hud-timer { font-size: 20px; font-weight: 700; color: #ffd319; }
+  #hud-objective { position: absolute; left: 16px; bottom: 64px; font-size: 17px; background: rgba(10,10,24,.7); padding: 8px 12px; border-left: 4px solid #05d9e8; border-radius: 4px; max-width: 420px; }
+  #hud-dialogue { position: absolute; left: 50%; transform: translateX(-50%); bottom: 110px; font-size: 16px; font-style: italic; background: rgba(10,10,24,.75); padding: 8px 16px; border-radius: 6px; max-width: 640px; text-align: center; transition: opacity .3s; }
+  #hud-message { position: absolute; left: 50%; transform: translateX(-50%); top: 22%; font-size: 22px; font-weight: 700; color: #ffd319; background: rgba(10,10,24,.7); padding: 10px 18px; border-radius: 6px; text-align: center; opacity: 0; transition: opacity .3s; max-width: 640px; }
+  #hud-controls { position: absolute; right: 16px; bottom: 14px; font-size: 12px; color: rgba(255,255,255,.75); text-align: right; line-height: 1.5; }
+  .screen { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(160deg, rgba(20,8,40,.92), rgba(8,8,24,.94)); color: #fff; text-align: center; z-index: 10; }
+  .screen h1 { font-size: 64px; margin: 0; letter-spacing: 6px; color: #ff2a6d; text-shadow: 0 0 24px #ff2a6d, 0 0 60px #b967ff; }
+  .screen h2 { font-size: 22px; font-weight: 400; color: #05d9e8; margin: 8px 0 20px; letter-spacing: 3px; }
+  .screen p { max-width: 560px; font-size: 16px; line-height: 1.6; color: #ddd; }
+  .screen .keys { font-size: 14px; color: #aaa; line-height: 1.9; margin: 10px 0 22px; }
+  .screen button { pointer-events: auto; font-size: 18px; padding: 12px 28px; margin: 6px; border: none; border-radius: 6px; background: #ff2a6d; color: #fff; font-weight: 700; cursor: pointer; box-shadow: 0 0 18px rgba(255,42,109,.6); }
+  .screen button.secondary { background: #1a1a2e; border: 1px solid #05d9e8; color: #05d9e8; box-shadow: none; }
+  .screen button:hover { filter: brightness(1.15); }
+  #screen-title { display: flex; }
+</style>
+<script type="importmap">
+  { "imports": { "three": "./vendor/three/three.module.min.js" } }
+</script>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div id="hud">
+  <div id="hud-top-left">
+    <div id="hud-cash">$0</div>
+    <div id="hud-health"><div id="hud-health-fill"></div></div>
+    <div id="hud-stars">☆☆☆☆☆</div>
+  </div>
+  <div id="hud-top-right">
+    <canvas id="minimap" width="180" height="180"></canvas>
+    <div id="hud-speed">ON FOOT</div>
+    <div id="hud-timer"></div>
+  </div>
+  <div id="hud-objective"></div>
+  <div id="hud-dialogue"></div>
+  <div id="hud-message"></div>
+  <div id="hud-controls">WASD move / drive &nbsp;·&nbsp; Mouse camera / aim<br>E enter car &nbsp;·&nbsp; Space handbrake / fire &nbsp;·&nbsp; Shift boost<br>P pause &nbsp;·&nbsp; M mute &nbsp;·&nbsp; R restart</div>
+</div>
+
+<div class="screen" id="screen-title">
+  <h1>SOLMARA</h1>
+  <h2>NEON STREETS</h2>
+  <p>You are <b>Dax Vell</b>, a driver new to Solmara. The fixer <b>Mara Quinn</b> has three jobs for you — if you can stay ahead of the Solmara PD. Steal cars, lose the tail, make the drops.</p>
+  <div class="keys">WASD — walk / drive &nbsp;·&nbsp; Mouse — camera &amp; aim &nbsp;·&nbsp; E — enter / exit car<br>Space — handbrake / fire &nbsp;·&nbsp; Shift — run / boost &nbsp;·&nbsp; P — pause &nbsp;·&nbsp; M — mute &nbsp;·&nbsp; R — restart</div>
+  <div>
+    <button id="btn-new">NEW GAME</button>
+    <button id="btn-continue" class="secondary">CONTINUE</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-pause">
+  <h1>PAUSED</h1>
+  <p>Solmara waits for no one — except now.</p>
+  <button id="btn-resume">RESUME</button>
+</div>
+
+<div class="screen" id="screen-busted">
+  <h1>BUSTED</h1>
+  <p>The Solmara PD caught up with you. You paid your dues and you are back on the street.</p>
+  <button id="btn-retry">BACK TO THE STREETS</button>
+</div>
+
+<div class="screen" id="screen-wasted">
+  <h1>WASTED</h1>
+  <p>Dax Vell is down — but Solmara always gives a second chance.</p>
+  <button id="btn-retry">BACK TO THE STREETS</button>
+</div>
+
+<div class="screen" id="screen-complete">
+  <h1>SOLMARA IS YOURS</h1>
+  <p>All three jobs done. Mara Quinn owes you — and the whole city knows your name now. Free roam: keep driving, keep dodging the law.</p>
+  <button id="btn-freeroam">FREE ROAM</button>
+  <button id="btn-again" class="secondary">NEW GAME</button>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
